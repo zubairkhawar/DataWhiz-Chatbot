@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'users',
     'chat',
     'files',
+    'ocr',
 ]
 
 MIDDLEWARE = [

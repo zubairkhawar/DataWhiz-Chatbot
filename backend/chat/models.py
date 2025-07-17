@@ -17,7 +17,6 @@ class Message(models.Model):
     content = models.TextField()
     sender = models.CharField(max_length=10, choices=[('user', 'User'), ('bot', 'Bot')])
     created_at = models.DateTimeField(auto_now_add=True)
-    file = models.ForeignKey('files.FileUpload', on_delete=models.SET_NULL, null=True, blank=True, related_name='messages')
 
     def __str__(self):
         return f"{self.sender}: {self.content[:30]}..."
