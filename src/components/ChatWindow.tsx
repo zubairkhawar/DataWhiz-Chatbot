@@ -10,7 +10,7 @@ interface Message {
 
 interface ChatWindowProps {
   messages: Message[];
-  onSendMessage: (text: string) => void;
+  onSendMessage: (text: string, files: File[]) => void;
 }
 
 function renderMessageText(text: string) {
@@ -46,8 +46,147 @@ function TypingEffect({ text }: { text: string }) {
   );
 }
 
+// MessageActions component stub
+function MessageActions({ messageId }: { messageId: number }) {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiAnswer, setAiAnswer] = useState<string | null>(null);
+  const [customQuestion, setCustomQuestion] = useState('');
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    setData(null);
+    fetch(`/api/ocr/message/${messageId}/`)
+      .then(res => {
+        if (!res.ok) throw new Error('No extracted data found');
+        return res.json();
+      })
+      .then(setData)
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [messageId]);
+
+  const handleExport = (fmt: string) => {
+    window.open(`/api/ocr/message/${messageId}/export/${fmt}/`, '_blank');
+  };
+
+  // AI Q&A logic
+  const suggestedQuestions = [
+    'Give me a summary of this data.',
+    'What are the key trends or insights?',
+    'Are there any anomalies or outliers?'
+  ];
+
+  const askAI = (question: string) => {
+    setAiLoading(true);
+    setAiAnswer(null);
+    fetch('/api/ocr/ai-agent/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question, message_id: messageId })
+    })
+      .then(res => res.json())
+      .then(res => setAiAnswer(res.answer || res.error || 'No answer'))
+      .catch(e => setAiAnswer('Error: ' + e.message))
+      .finally(() => setAiLoading(false));
+  };
+
+  if (loading) return <div className="text-cyan-400">Loading extracted data...</div>;
+  // Do not show error if no extracted data found; just render nothing
+  if (!data || (!data.extracted_data && !data.extracted_text)) return null;
+
+  // Render preview: table if extracted_data is tabular, else JSON/text
+  let preview = null;
+  if (data.extracted_data && Array.isArray(data.extracted_data)) {
+    const columns = Object.keys(data.extracted_data[0] || {});
+    preview = (
+      <div className="overflow-x-auto">
+        <table className="min-w-[300px] border border-cyan-700 rounded-xl text-sm">
+          <thead>
+            <tr>
+              {columns.map(col => (
+                <th key={col} className="px-3 py-2 bg-cyan-900 text-cyan-200 font-bold border-b border-cyan-700">{col}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.extracted_data.map((row: any, i: number) => (
+              <tr key={i} className="even:bg-cyan-950/40">
+                {columns.map(col => (
+                  <td key={col} className="px-3 py-2 border-b border-cyan-800">{row[col]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  } else if (data.extracted_data) {
+    preview = (
+      <pre className="bg-gray-900 text-green-400 font-mono px-4 py-3 rounded-md shadow-inner border border-cyan/30 whitespace-pre-wrap overflow-x-auto text-xs mt-2">
+        {JSON.stringify(data.extracted_data, null, 2)}
+      </pre>
+    );
+  } else if (data.extracted_text) {
+    preview = (
+      <pre className="bg-gray-900 text-cyan-200 font-mono px-4 py-3 rounded-md shadow-inner border border-cyan/30 whitespace-pre-wrap overflow-x-auto text-xs mt-2">
+        {data.extracted_text}
+      </pre>
+    );
+  }
+
+  return (
+    <div className="bg-glass2 border border-cyan/20 rounded-xl p-4 mt-2 shadow-inner">
+      <div className="text-cyan-300 font-semibold mb-2">Extracted Data Preview</div>
+      {preview}
+      <div className="flex gap-3 mt-4">
+        <button onClick={() => handleExport('csv')} className="px-4 py-2 rounded-lg bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs shadow">Export CSV</button>
+        <button onClick={() => handleExport('xlsx')} className="px-4 py-2 rounded-lg bg-violet-700 hover:bg-violet-800 text-white font-bold text-xs shadow">Export Excel</button>
+        <button onClick={() => handleExport('json')} className="px-4 py-2 rounded-lg bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow">Export JSON</button>
+      </div>
+      {/* AI Q&A section */}
+      <div className="mt-6">
+        <div className="text-cyan-200 font-semibold mb-2">Ask DataWhiz AI about this data:</div>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {suggestedQuestions.map((q, i) => (
+            <button key={i} onClick={() => askAI(q)} className="px-3 py-1 rounded-lg bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-semibold shadow transition disabled:opacity-60" disabled={aiLoading}>{q}</button>
+          ))}
+        </div>
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            if (customQuestion.trim()) askAI(customQuestion.trim());
+          }}
+          className="flex gap-2 mt-2"
+        >
+          <input
+            type="text"
+            className="flex-1 px-3 py-2 rounded-lg bg-glass border border-cyan-700 text-cyan-100 text-sm focus:outline-none"
+            placeholder="Ask a custom question about this data..."
+            value={customQuestion}
+            onChange={e => setCustomQuestion(e.target.value)}
+            disabled={aiLoading}
+          />
+          <button type="submit" className="px-4 py-2 rounded-lg bg-cyan-700 hover:bg-cyan-800 text-white font-bold text-xs shadow" disabled={aiLoading || !customQuestion.trim()}>Ask</button>
+        </form>
+        {aiLoading && <div className="text-cyan-400 mt-2">Thinking...</div>}
+        {aiAnswer && (
+          <div className="mt-4 bg-gray-900/80 border border-cyan-700 rounded-xl p-4 text-cyan-100 text-sm whitespace-pre-line shadow-inner">
+            <span className="font-bold text-cyan-300">AI Answer:</span>
+            <div className="mt-2">{aiAnswer}</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ChatWindow({ messages, onSendMessage }: ChatWindowProps) {
   const [input, setInput] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const chatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,9 +195,10 @@ export default function ChatWindow({ messages, onSendMessage }: ChatWindowProps)
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    onSendMessage(input.trim());
+    if (!input.trim() && selectedFiles.length === 0) return;
+    onSendMessage(input.trim(), selectedFiles);
     setInput('');
+    setSelectedFiles([]);
   };
 
   // Find the last bot message index
@@ -103,13 +243,19 @@ export default function ChatWindow({ messages, onSendMessage }: ChatWindowProps)
                   ) : (
                     renderMessageText(msg.text)
                   )}
+                  {/* Data preview/edit/export UI placeholder (only for bot messages) */}
+                  {msg.sender === 'bot' && (
+                    <div className="mt-3">
+                      <MessageActions messageId={msg.id} />
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
-      <form onSubmit={handleSend} className="flex items-center p-4 border-t border-white/10 bg-glass2/80 relative z-10">
+      <form onSubmit={handleSend} className="flex items-center p-4 border-t border-white/10 bg-glass2/80 relative z-10 gap-2">
         <input
           type="text"
           className="flex-1 px-4 py-3 rounded-2xl bg-glass text-gray-100 focus:outline-none focus:ring-2 focus:ring-violet border border-white/10 shadow-inner font-sans text-base"
@@ -117,6 +263,27 @@ export default function ChatWindow({ messages, onSendMessage }: ChatWindowProps)
           value={input}
           onChange={e => setInput(e.target.value)}
         />
+        <input
+          type="file"
+          multiple
+          className="hidden"
+          id="chat-file-input"
+          onChange={e => {
+            if (e.target.files) {
+              setSelectedFiles(Array.from(e.target.files));
+            }
+          }}
+        />
+        <label htmlFor="chat-file-input" className="cursor-pointer px-3 py-2 rounded-xl bg-gradient-to-br from-cyan-600 to-purple-500 text-white font-bold shadow-md hover:from-cyan-700 hover:to-purple-600 transition-all duration-200 border-none flex items-center gap-1">
+          📎
+        </label>
+        {selectedFiles.length > 0 && (
+          <div className="flex flex-col gap-1 ml-2">
+            {selectedFiles.map((file, idx) => (
+              <span key={idx} className="text-xs text-cyan-200 bg-glass px-2 py-1 rounded-lg truncate max-w-[120px]">{file.name}</span>
+            ))}
+          </div>
+        )}
         <button
           type="submit"
           className="ml-3 px-6 py-3 rounded-2xl bg-gradient-to-br from-violet via-cyan to-purple shadow-lg hover:shadow-[0_0_20px_#8B5CF6] text-white font-bold shadow-neon-violet hover:scale-105 transition-all duration-200 border-none text-base focus:outline-none"

@@ -1,40 +1,54 @@
 // src/lib/auth.ts
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/auth';
+
 export async function signIn(email: string, password: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (!email || !password) {
-        reject(new Error("Please enter both email and password."));
-      } else {
-        // Simulate success
-        localStorage.setItem("auth", "true");
-        localStorage.setItem("userEmail", email);
-        resolve();
-      }
-    }, 700);
+  const res = await fetch(`${API_BASE}/login/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
   });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || 'Sign in failed');
+  }
+  const data = await res.json();
+  localStorage.setItem('auth', 'true');
+  localStorage.setItem('userEmail', email);
+  localStorage.setItem('accessToken', data.access);
+  localStorage.setItem('refreshToken', data.refresh);
 }
 
 export async function signUp(
   email: string,
   password: string,
   confirmPassword: string,
-  terms: boolean
+  terms: boolean,
+  firstName: string,
+  lastName: string,
+  username?: string,
+  avatar?: File | null
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (!email || !password || !confirmPassword) {
-        reject(new Error("Please fill in all fields."));
-      } else if (password !== confirmPassword) {
-        reject(new Error("Passwords do not match."));
-      } else if (!terms) {
-        reject(new Error("You must agree to the terms."));
-      } else {
-        // Simulate success
-        localStorage.setItem("auth", "true");
-        localStorage.setItem("userEmail", email);
-        resolve();
-      }
-    }, 900);
+  if (!terms) throw new Error('You must agree to the terms.');
+  const formData = new FormData();
+  formData.append('email', email);
+  formData.append('password', password);
+  formData.append('password2', confirmPassword);
+  formData.append('first_name', firstName);
+  formData.append('last_name', lastName);
+  if (username) formData.append('username', username);
+  if (avatar) formData.append('avatar', avatar);
+
+  const res = await fetch(`${API_BASE}/register/`, {
+    method: 'POST',
+    body: formData,
   });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(
+      data.email?.[0] || data.password?.[0] || data.detail || 'Sign up failed'
+    );
+  }
+  // Auto-login after signup
+  await signIn(email, password);
 } 

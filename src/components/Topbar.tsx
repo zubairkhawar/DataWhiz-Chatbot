@@ -13,12 +13,33 @@ export default function Topbar({ onProfileClick }: TopbarProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [userInitial, setUserInitial] = useState('U');
+  const MEDIA_URL = "http://localhost:8000/media/";
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const email = localStorage.getItem('userEmail');
       if (email && email.length > 0) {
         setUserInitial(email[0].toUpperCase());
+      }
+      // Try to get avatar from localStorage (set after profile fetch)
+      const avatar = localStorage.getItem('userAvatar');
+      if (avatar) setUserAvatar(avatar);
+      else {
+        // If not in localStorage, fetch from API
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          fetch('http://localhost:8000/api/auth/profile/', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+              if (data && data.avatar) {
+                setUserAvatar(data.avatar);
+                localStorage.setItem('userAvatar', data.avatar);
+              }
+            });
+        }
       }
     }
   }, []);
@@ -54,11 +75,15 @@ export default function Topbar({ onProfileClick }: TopbarProps) {
       <div className="flex items-center gap-4 relative" ref={dropdownRef}>
         {/* Avatar dropdown */}
         <button
-          className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-md border-2 border-white/20 focus:outline-none"
+          className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-md border-2 border-white/20 focus:outline-none overflow-hidden"
           onClick={() => setDropdownOpen(v => !v)}
           aria-label="User menu"
         >
-          <span className="text-xl">{userInitial}</span>
+          {userAvatar ? (
+            <img src={userAvatar.startsWith('http') ? userAvatar : MEDIA_URL + userAvatar} alt="avatar" className="w-full h-full object-cover rounded-full" />
+          ) : (
+            <span className="text-xl">{userInitial}</span>
+          )}
         </button>
         {dropdownOpen && (
           <div className="absolute right-0 top-14 min-w-[160px] bg-gray-900/95 rounded-xl shadow-xl border border-white/10 py-2 z-50 animate-fade-in">
