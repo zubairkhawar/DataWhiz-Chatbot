@@ -2,7 +2,7 @@
 import Logo from './Logo';
 import { useState, MouseEvent, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import { Transition } from '@headlessui/react';
 import React from 'react';
 
@@ -19,12 +19,14 @@ interface SidebarProps {
   onDeleteChat: (id: number) => void;
   onLogoClick?: () => void;
   onRenameChat?: (id: number, newTitle: string) => void;
+  onProfileClick?: () => void;
 }
 
-export default function SidebarWithToggle({ chats = [], selectedChatId, onSelectChat, onDeleteChat, onLogoClick, onRenameChat }: SidebarProps) {
+export default function SidebarWithToggle({ chats = [], selectedChatId, onSelectChat, onDeleteChat, onLogoClick, onRenameChat, onProfileClick }: SidebarProps) {
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus input when editing
@@ -43,6 +45,13 @@ export default function SidebarWithToggle({ chats = [], selectedChatId, onSelect
     }
     setEditingId(null);
     setEditValue('');
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteId !== null) {
+      onDeleteChat(deleteId);
+      setDeleteId(null);
+    }
   };
 
   const chatLinks = (
@@ -80,7 +89,15 @@ export default function SidebarWithToggle({ chats = [], selectedChatId, onSelect
               </button>
             )}
             <button
-              onClick={(e: MouseEvent) => { e.stopPropagation(); onDeleteChat(chat.id); }}
+              onClick={(e: MouseEvent) => { e.stopPropagation(); handleRename(chat.id, chat.title); }}
+              className="ml-2 p-1 rounded-full hover:bg-blue-700/80 transition group-hover:opacity-100 opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue focus-visible:ring-offset-2 focus-visible:ring-offset-glass"
+              aria-label="Rename chat"
+              tabIndex={0}
+            >
+              <Pencil className="w-4 h-4 text-blue-400 group-hover:text-cyan-400 transition" />
+            </button>
+            <button
+              onClick={(e: MouseEvent) => { e.stopPropagation(); setDeleteId(chat.id); }}
               className="ml-2 p-1 rounded-full hover:bg-purple-700/80 transition group-hover:opacity-100 opacity-70 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple focus-visible:ring-offset-2 focus-visible:ring-offset-glass"
               aria-label="Delete chat"
               tabIndex={0}
@@ -89,15 +106,43 @@ export default function SidebarWithToggle({ chats = [], selectedChatId, onSelect
             </button>
           </div>
           {/* Last message preview */}
-          {chat.lastMessage && (
+          {/* {chat.lastMessage && (
             <div className="ml-2 mt-1 text-xs text-gray-400 truncate max-w-[90%] group-hover:text-cyan transition-all duration-200">
               {chat.lastMessage.length > 48 ? chat.lastMessage.slice(0, 48) + '…' : chat.lastMessage}
             </div>
-          )}
+          )} */}
         </motion.li>
       ))}
     </ul>
   );
+
+  // Avatar logic for mobile sidebar
+  const [userInitial, setUserInitial] = useState('U');
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const MEDIA_URL = "http://localhost:8000/media/";
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const email = localStorage.getItem('userEmail');
+      if (email && email.length > 0) setUserInitial(email[0].toUpperCase());
+      const avatar = localStorage.getItem('userAvatar');
+      if (avatar) setUserAvatar(avatar);
+      else {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          fetch('http://localhost:8000/api/auth/profile/', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+              if (data && data.avatar) {
+                setUserAvatar(data.avatar);
+                localStorage.setItem('userAvatar', data.avatar);
+              }
+            });
+        }
+      }
+    }
+  }, []);
 
   return (
     <>
@@ -120,6 +165,18 @@ export default function SidebarWithToggle({ chats = [], selectedChatId, onSelect
         <div className="fixed inset-0 z-40 flex md:hidden">
           <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setOpen(false)} />
           <aside className="relative w-11/12 max-w-xs h-full bg-gradient-to-br from-glass to-glass2 border-r border-white/10 flex flex-col p-6 z-50 backdrop-blur-md shadow-2xl">
+            {/* Profile avatar for mobile */}
+            <button
+              className="mx-auto mb-4 w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-md border-2 border-white/20 focus:outline-none overflow-hidden"
+              onClick={() => { setOpen(false); onProfileClick && onProfileClick(); }}
+              aria-label="User menu"
+            >
+              {userAvatar ? (
+                <img src={userAvatar.startsWith('http') ? userAvatar : MEDIA_URL + userAvatar} alt="avatar" className="w-full h-full object-cover rounded-full" />
+              ) : (
+                <span className="text-2xl">{userInitial}</span>
+              )}
+            </button>
             <button
               className="absolute top-4 right-4 text-gray-400 hover:text-white bg-glass p-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-violet focus-visible:ring-offset-2 focus-visible:ring-offset-glass"
               onClick={() => setOpen(false)}
@@ -131,6 +188,25 @@ export default function SidebarWithToggle({ chats = [], selectedChatId, onSelect
             <Logo onClick={onLogoClick} />
             <nav className="flex-1 overflow-y-auto custom-scrollbar">{chatLinks}</nav>
           </aside>
+        </div>
+      </Transition>
+      {/* Delete confirmation modal */}
+      <Transition show={deleteId !== null} as={React.Fragment}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-gray-900 rounded-2xl p-8 shadow-2xl border border-white/10 flex flex-col items-center">
+            <h3 className="text-lg font-bold mb-4 text-white">Delete Chat?</h3>
+            <p className="text-gray-300 mb-6">Are you sure you want to delete this chat? This action cannot be undone.</p>
+            <div className="flex gap-4">
+              <button
+                className="px-6 py-2 rounded-xl bg-gray-700 text-gray-200 font-bold hover:bg-gray-600 transition"
+                onClick={() => setDeleteId(null)}
+              >Cancel</button>
+              <button
+                className="px-6 py-2 rounded-xl bg-gradient-to-r from-red-600 to-purple-600 text-white font-bold hover:from-red-700 hover:to-purple-700 transition"
+                onClick={handleDeleteConfirm}
+              >Delete</button>
+            </div>
+          </div>
         </div>
       </Transition>
     </>
