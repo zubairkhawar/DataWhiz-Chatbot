@@ -1,4 +1,4 @@
-# DataWhiz
+# DataWhiz AI
 
 **DataWhiz** is an AI-powered document analysis and business reporting tool. Upload your files, chat with your data, and receive intelligent, formatted responses, summaries, insights, and downloadable reports—all in a beautiful, modern interface.
 
@@ -101,13 +101,6 @@ npm run dev
 
 **Backend (.env):**
 ```
-DB_NAME=your_db
-DB_USER=your_user
-DB_PASSWORD=your_password
-DB_HOST=localhost
-DB_PORT=5432
-OPENAI_API_KEY=your_openai_key
-```
 
 **Frontend (.env.local):**
 ```
@@ -119,14 +112,6 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/auth
 ## Screenshots
 
 > _Add screenshots of your UI here for extra polish!_
-
----
-
-## License
-
-MIT License
-
----
 
 ## Acknowledgements
 
