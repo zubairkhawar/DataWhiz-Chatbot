@@ -1,6 +1,6 @@
 # DataWhiz AI
 
-**DataWhiz** is an AI-powered document analysis and business reporting tool. Upload your files, chat with your data, and receive intelligent, formatted responses, summaries, insights, and downloadable reports—all in a beautiful, modern interface.
+**DataWhiz** is an AI-powered document analysis and business reporting tool. Upload your files, chat with your data, and receive intelligent, formatted responses, summaries, insights, and downloadable reports—all in a beautiful, modern interface. 
 <img width="1512" height="817" alt="Screenshot 2025-07-20 at 6 03 59 AM" src="https://github.com/user-attachments/assets/b7549a41-fc8f-4fed-8ba1-442a56a0ec96" />
 
 ---
