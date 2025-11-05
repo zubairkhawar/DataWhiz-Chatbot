@@ -21,6 +21,7 @@
 
 ## Tech Stack
 
+
 ### Frontend
 - **Next.js (App Router)**
 - **React** (Hooks, Framer Motion)
