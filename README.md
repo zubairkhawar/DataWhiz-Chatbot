@@ -4,6 +4,7 @@
 <img width="1512" height="817" alt="Screenshot 2025-07-20 at 6 03 59 AM" src="https://github.com/user-attachments/assets/b7549a41-fc8f-4fed-8ba1-442a56a0ec96" />
 ---
 
+
 ## Features
 
 - **Modern Glassmorphic UI**: Sleek, responsive design with a sidebar chat widget, dashboard, and profile management.
