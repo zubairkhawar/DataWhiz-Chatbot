@@ -15,7 +15,6 @@
 - **File Management**: All files are linked to chat messages and can be tagged and managed.
 - **Export Data**: Download extracted or analyzed data as CSV, Excel, or JSON.
 - **Profile & Avatar**: Manage your profile, see all user info, and use a custom avatar.
-
 ---
 
 ## Tech Stack
