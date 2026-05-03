@@ -18,7 +18,6 @@
 - **Profile & Avatar**: Manage your profile, see all user info, and use a custom avatar.
 ---
 
-
 ## Tech Stack
 
 ### Frontend
