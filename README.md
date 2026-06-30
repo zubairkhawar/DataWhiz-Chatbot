@@ -46,7 +46,6 @@ datawhiz-chatbot/
 ```
 
 ---
-
 ## Getting Started
 
 ### Prerequisites
