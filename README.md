@@ -5,6 +5,7 @@
 ---
 ## Features
 
+
 - **Modern Glassmorphic UI**: Sleek, responsive design with a sidebar chat widget, dashboard, and profile management.
 - **User Authentication**: Secure registration, login, JWT-based sessions, password reset, and account deletion.
 - **Chat with Your Data**: Upload multiple files (CSV, Excel, JSON, images, PDFs) and ask questions in natural language.
